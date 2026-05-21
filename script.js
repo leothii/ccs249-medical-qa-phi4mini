@@ -2,7 +2,7 @@
   MedAI — Chatbot Frontend Logic
   ═══════════════════════════════════════════════════════════════════════ */
 
-const DEFAULT_API = "http://localhost:8000";
+const DEFAULT_API = "https://alto-chan-kay-cups.trycloudflare.com";
 // Load persisted settings early so API_BASE can be configured
 const _persistedSettings = JSON.parse(localStorage.getItem("medai-settings") || "{}");
 let API_BASE = _persistedSettings.apiBase || DEFAULT_API;
