@@ -12,7 +12,7 @@ Endpoints:
     GET  /health     — Health check
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 import torch
 import os
@@ -20,6 +20,7 @@ import re
 
 app = Flask(__name__)
 CORS(app)  # Allow requests from the HTML frontend
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
 # ─── Model Configuration ──────────────────────────────────────────────────────
 MODEL_PATH    = "./outputs/phi4-medical-final"   # Merged fine-tuned model
@@ -32,6 +33,20 @@ SYSTEM_MSG = (
     "You are a helpful medical assistant trained on NIH (National Institutes of Health) data. "
     "Answer medical questions accurately and clearly. "
     "Always remind users to consult a licensed healthcare professional for personal medical advice."
+)
+
+URGENT_PATTERN = re.compile(
+    r"\b(chest pain|trouble breathing|difficulty breathing|shortness of breath|"
+    r"stroke|face droop|fainting|seizure|suicidal|suicide|overdose|"
+    r"severe bleeding|anaphylaxis|severe allergic|blue lips|"
+    r"loss of consciousness|heart attack)\b",
+    re.IGNORECASE,
+)
+
+URGENT_WARNING = (
+    "Urgent safety note: your question may describe symptoms that need immediate care. "
+    "If this is happening now, call your local emergency number or go to the nearest "
+    "emergency department. MedAI can provide general information, but it cannot assess emergencies."
 )
 
 # ─── Load Model ───────────────────────────────────────────────────────────────
@@ -168,7 +183,7 @@ def generate_answer(question: str, max_tokens: int = MAX_NEW_TOKENS) -> dict:
         f"<|assistant|>\n"
     )
 
-    inputs = tokenizer(prompt, return_tensors="pt").to(_model_device())
+    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=MAX_SEQ_LEN).to(_model_device())
 
     with torch.no_grad():
         outputs = model.generate(
@@ -214,7 +229,7 @@ def generate_summary(text: str) -> str:
         f"<|assistant|>\n"
     )
 
-    inputs = tokenizer(prompt, return_tensors="pt").to(_model_device())
+    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=MAX_SEQ_LEN).to(_model_device())
 
     with torch.no_grad():
         outputs = model.generate(
@@ -263,6 +278,23 @@ def generate_related_questions(question: str, answer: str) -> list:
 
 
 # ─── Routes ───────────────────────────────────────────────────────────────────
+@app.route("/", methods=["GET"])
+def splash():
+    return send_from_directory(APP_DIR, "splashscreen.html")
+
+
+@app.route("/app", methods=["GET"])
+def frontend():
+    return send_from_directory(APP_DIR, "index.html")
+
+
+@app.route("/<path:path>", methods=["GET"])
+def static_assets(path):
+    if path in {"index.html", "splashscreen.html", "styles.css", "script.js"} or path.startswith("assets/"):
+        return send_from_directory(APP_DIR, path)
+    return jsonify({"error": "Not found"}), 404
+
+
 @app.route("/health", methods=["GET"])
 def health():
     return jsonify({
@@ -282,6 +314,7 @@ def chat():
     if not question:               return jsonify({"error": "Missing 'question' field."}), 400
     if len(question) > 1000:       return jsonify({"error": "Question too long (max 1000 characters)."}), 400
 
+    is_urgent = bool(URGENT_PATTERN.search(question))
     result  = generate_answer(question)
     related = generate_related_questions(question, result["answer"])
 
@@ -290,6 +323,7 @@ def chat():
         "confidence"       : result["confidence"],
         "source"           : result["source"],
         "related_questions": related,
+        "urgent_warning"   : URGENT_WARNING if is_urgent else "",
     })
 
 
@@ -306,7 +340,7 @@ def summarize():
 
 # ─── Entry Point ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    print("\n Starting Flask server on http://localhost:5000")
-    print(" Open index.html in your browser to use the chatbot.\n")
-    print(" Note: running on port 8000 to match Kaggle notebook and tunnel.")
+    print("\n Starting Flask server on http://localhost:8000")
+    print(" Open http://localhost:8000 to start at the MedAI splash screen.\n")
+    print(" API endpoints are available on the same port.")
     app.run(host="0.0.0.0", port=8000, debug=False)

@@ -7,15 +7,29 @@ const DEFAULT_API = "http://localhost:8000";
 const _persistedSettings = JSON.parse(localStorage.getItem("medai-settings") || "{}");
 let API_BASE = _persistedSettings.apiBase || DEFAULT_API;
 
+function persistSettings(overrides = {}) {
+  const existingSettings = JSON.parse(localStorage.getItem("medai-settings") || "{}");
+  localStorage.setItem("medai-settings", JSON.stringify({
+    ...existingSettings,
+    ...overrides,
+    apiBase: API_BASE,
+  }));
+}
+
 // ─── State ────────────────────────────────────────────────────────────────────
 let isLoading = false;
 let history   = JSON.parse(localStorage.getItem("medai-history") || "[]");
+let savedAnswers = JSON.parse(localStorage.getItem("medai-saved-answers") || "[]");
+const AI_AVATAR_HTML = `<img src="assets/logo-avatar.png" alt="MedAI logo">`;
 
 // ─── DOM Refs ─────────────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
 
 const chatMessages   = $("chat-messages");
 const chatInput      = $("chat-input");
+const chatInputShell = chatInput?.closest(".lg-input");
+const attachBtn      = $("attach-btn");
+const attachInput    = $("attach-input");
 const sendBtn        = $("send-btn");
 const statusDot      = $("status-dot");
 const statusText     = $("status-text");
@@ -27,9 +41,12 @@ const rightSumInput  = $("right-sum-input");
 const rightSumBtn    = $("right-sum-btn");
 const rightSumResult = $("right-sum-result");
 const rightSumText   = $("right-sum-result-text");
-const apiBaseInput   = $("api-base-input");
 const historyPanel   = $("history-panel");
+const savedPanel     = $("saved-panel");
 const toastEl        = $("toast");
+
+const URGENT_PATTERN = /\b(chest pain|trouble breathing|difficulty breathing|shortness of breath|stroke|face droop|fainting|seizure|suicidal|suicide|overdose|severe bleeding|anaphylaxis|severe allergic|blue lips|loss of consciousness|heart attack)\b/i;
+const URGENT_WARNING = "Urgent safety note: your question may describe symptoms that need immediate care. If this is happening now, call your local emergency number or go to the nearest emergency department. MedAI can provide general information, but it cannot assess emergencies.";
 
 // ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
 async function checkHealth() {
@@ -100,8 +117,7 @@ async function checkHealth() {
   if (success) {
     // Persist the working candidate
     API_BASE = success.url;
-    if (apiBaseInput) apiBaseInput.value = API_BASE;
-    saveSettings();
+    persistSettings();
     statusDot.classList.remove("offline");
     statusText.textContent = success.data.model_loaded ? "Online — Model Ready" : "Online (Demo Mode)";
     return;
@@ -120,6 +136,15 @@ function switchTab(name) {
     p.classList.toggle("active", p.id === `tab-${name}`);
   });
   if (name === "history") renderHistory();
+  if (name === "saved") renderSavedAnswers();
+}
+
+function setChatQuestion(question, autoSend = false) {
+  switchTab("chat");
+  chatInput.value = question;
+  autoResize(chatInput);
+  chatInput.focus();
+  if (autoSend) sendMessage();
 }
 
 // ─── TEXTAREA AUTOSIZE ────────────────────────────────────────────────────────
@@ -165,10 +190,7 @@ function appendMessage(role, content, meta = null) {
   if (role === "ai") {
     const av = document.createElement("div");
     av.className = "msg__avatar";
-    av.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-      </svg>`;
+    av.innerHTML = AI_AVATAR_HTML;
     wrap.appendChild(av);
   }
 
@@ -181,7 +203,7 @@ function appendMessage(role, content, meta = null) {
   inner.innerHTML = formatBody(content);
   bubble.appendChild(inner);
 
-  // Meta (confidence + source + copy)
+  // Meta (response estimate + source + copy)
   if (meta && role === "ai") {
     const confClass =
       meta.confidence >= 80 ? "conf-high" :
@@ -194,16 +216,27 @@ function appendMessage(role, content, meta = null) {
         <span class="conf-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
         </span>
-        <span><strong>Confidence:</strong> ${meta.confidence}%</span>
+        <span><strong>Response estimate:</strong> ${meta.confidence}%</span>
       </span>
       <span class="msg__source">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
         <span style="color:var(--lg-blue-bright)">${meta.source}</span>
       </span>
-      <button class="msg__copy" title="Copy">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-      </button>`;
-    metaDiv.querySelector(".msg__copy").addEventListener("click", () => copyText(content));
+      <div class="msg__actions">
+        <button class="msg__action" data-action="copy" title="Copy answer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </button>
+        <button class="msg__action" data-action="save" title="Save answer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        ${meta.question ? `
+        <button class="msg__action" data-action="retry" title="Ask again">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        </button>` : ""}
+      </div>`;
+    metaDiv.querySelector('[data-action="copy"]')?.addEventListener("click", () => copyText(content));
+    metaDiv.querySelector('[data-action="save"]')?.addEventListener("click", () => saveAnswer(content, meta));
+    metaDiv.querySelector('[data-action="retry"]')?.addEventListener("click", () => setChatQuestion(meta.question, true));
     bubble.appendChild(metaDiv);
   }
 
@@ -230,6 +263,9 @@ function appendMessage(role, content, meta = null) {
 
   wrap.appendChild(bubble);
   chatMessages.appendChild(wrap);
+  requestAnimationFrame(() => {
+    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: "smooth" });
+  });
 }
 
 // ─── TYPING INDICATOR ─────────────────────────────────────────────────────────
@@ -239,16 +275,29 @@ function showTyping() {
   div.id = "typing-indicator";
   div.innerHTML = `
     <div class="msg__avatar">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-      </svg>
+      ${AI_AVATAR_HTML}
     </div>
     <div class="msg__bubble">
       <div class="msg__bubble-inner typing-bubble">
-        <div class="typing-dots"><span></span><span></span><span></span></div>
+        <div class="heartbeat-loader" aria-label="MedAI is thinking">
+          <svg viewBox="0 0 120 32" role="img">
+            <defs>
+              <linearGradient id="heartbeat-gradient" x1="0" y1="0" x2="120" y2="0" gradientUnits="userSpaceOnUse">
+                <stop offset="0" stop-color="#16B0DD"/>
+                <stop offset="0.52" stop-color="#974994"/>
+                <stop offset="1" stop-color="#FD931D"/>
+              </linearGradient>
+            </defs>
+            <path class="heartbeat-loader__base" d="M2 18H30L37 18L43 6L51 28L60 18H76L82 12L88 18H118"/>
+            <path class="heartbeat-loader__pulse" d="M2 18H30L37 18L43 6L51 28L60 18H76L82 12L88 18H118"/>
+          </svg>
+        </div>
       </div>
     </div>`;
   chatMessages.appendChild(div);
+  requestAnimationFrame(() => {
+    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: "smooth" });
+  });
 }
 function removeTyping() {
   document.getElementById("typing-indicator")?.remove();
@@ -263,8 +312,13 @@ async function sendMessage() {
   sendBtn.disabled = true;
   chatInput.value = "";
   chatInput.style.height = "auto";
+  clearTimeout(typingGlowTimeout);
+  chatInputShell?.classList.remove("is-typing");
 
   appendMessage("user", question);
+  if (URGENT_PATTERN.test(question)) {
+    appendMessage("ai", URGENT_WARNING);
+  }
   showTyping();
 
   try {
@@ -283,20 +337,25 @@ async function sendMessage() {
 
       // Support multiple backend shapes:
       // - Local Flask: { answer, confidence, source, related_questions }
-      // - Kaggle FastAPI notebook: { response }
+      // - Hosted notebook/API variant: { response }
       const answerText = data.answer || data.response || data.answer_text || data.summary || JSON.stringify(data);
       const confidence = data.confidence || data.confidence_score || null;
       const source     = data.source || data.from || "Remote API";
       const related    = data.related_questions || data.related || [];
+      const warning    = data.urgent_warning || data.warning || "";
 
       appendMessage("ai", answerText, {
         confidence: confidence ?? 0,
         source:     source,
         related:    related,
+        question:   question,
       });
+      if (warning && !URGENT_PATTERN.test(question)) {
+        appendMessage("ai", warning);
+      }
 
       // Save to history
-      history.unshift({ question, answer: data.answer, ts: Date.now() });
+      history.unshift({ question, answer: answerText, ts: Date.now() });
       if (history.length > 50) history.pop();
       localStorage.setItem("medai-history", JSON.stringify(history));
     }
@@ -304,7 +363,7 @@ async function sendMessage() {
     removeTyping();
     appendMessage(
       "ai",
-      `⚠️ Could not reach the model server at ${API_BASE}.\n\nMake sure your FastAPI server is running and reachable at this URL (check network, CORS, and that the host supports HTTPS).`
+      `Could not reach the model server at ${API_BASE}.\n\nMake sure your Flask API server is running and reachable at this URL. If you are using a tunnel, update the API Base URL in Settings.`
     );
   }
 
@@ -315,8 +374,7 @@ async function sendMessage() {
 
 // ─── RELATED QUESTION CLICK ───────────────────────────────────────────────────
 function askRelated(question) {
-  chatInput.value = question;
-  sendMessage();
+  setChatQuestion(question, true);
 }
 
 // ─── COPY TO CLIPBOARD ────────────────────────────────────────────────────────
@@ -329,14 +387,25 @@ async function copyText(text) {
   }
 }
 
+function saveAnswer(answer, meta = {}) {
+  savedAnswers.unshift({
+    question: meta.question || "",
+    answer,
+    source: meta.source || "",
+    ts: Date.now(),
+  });
+  savedAnswers = savedAnswers.slice(0, 30);
+  localStorage.setItem("medai-saved-answers", JSON.stringify(savedAnswers));
+  renderSavedAnswers();
+  showToast("Answer saved");
+}
+
 // ─── CLEAR CHAT ───────────────────────────────────────────────────────────────
 function clearChat() {
   chatMessages.innerHTML = `
     <div class="msg msg--ai">
       <div class="msg__avatar">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-        </svg>
+        ${AI_AVATAR_HTML}
       </div>
       <div class="msg__bubble">
         <div class="msg__bubble-inner"><p>Chat cleared. How can I help you today?</p></div>
@@ -369,24 +438,73 @@ function saveConversation() {
 // ─── HISTORY RENDER ───────────────────────────────────────────────────────────
 function renderHistory() {
   if (!history.length) {
-    historyPanel.innerHTML = `<div class="history-empty">No history yet. Ask a question to get started!</div>`;
+    historyPanel.innerHTML = `
+      <div class="empty-state history-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <strong>No history yet</strong>
+        <span>Ask a question to start building your recent topics.</span>
+      </div>`;
     return;
   }
   historyPanel.innerHTML = "";
   history.slice(0, 30).forEach(h => {
+    const question = String(h.question || "");
+    const answer = String(h.answer || "");
     const item = document.createElement("div");
     item.className = "history-item";
     item.innerHTML = `
-      <div class="history-item__q">${escapeHtml(h.question.substring(0, 80))}${h.question.length > 80 ? "…" : ""}</div>
-      <div class="history-item__a">${escapeHtml(h.answer.substring(0, 130))}…</div>`;
+      <div class="history-item__q">${escapeHtml(question.substring(0, 80))}${question.length > 80 ? "..." : ""}</div>
+      <div class="history-item__a">${escapeHtml(answer.substring(0, 130))}${answer.length > 130 ? "..." : ""}</div>`;
     item.addEventListener("click", () => {
-      switchTab("chat");
-      chatInput.value = h.question;
-      chatInput.focus();
+      setChatQuestion(question);
     });
     historyPanel.appendChild(item);
   });
 }
+
+function renderSavedAnswers() {
+  if (!savedPanel) return;
+  if (!savedAnswers.length) {
+    savedPanel.innerHTML = `
+      <div class="empty-state history-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        <strong>No saved answers yet</strong>
+        <span>Use the bookmark icon on an answer to save it here.</span>
+      </div>`;
+    return;
+  }
+
+  savedPanel.innerHTML = "";
+  savedAnswers.forEach((saved, index) => {
+    const question = String(saved.question || "Saved answer");
+    const answer = String(saved.answer || "");
+    const item = document.createElement("div");
+    item.className = "history-item saved-item";
+    item.innerHTML = `
+      <div class="history-item__q">${escapeHtml(question.substring(0, 100))}${question.length > 100 ? "..." : ""}</div>
+      <div class="history-item__a">${escapeHtml(answer.substring(0, 220))}${answer.length > 220 ? "..." : ""}</div>
+      <div class="saved-item__actions">
+        <button type="button" data-saved-action="copy">Copy</button>
+        <button type="button" data-saved-action="remove">Remove</button>
+      </div>`;
+    item.querySelector('[data-saved-action="copy"]')?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      copyText(answer);
+    });
+    item.querySelector('[data-saved-action="remove"]')?.addEventListener("click", (event) => {
+      event.stopPropagation();
+      savedAnswers.splice(index, 1);
+      localStorage.setItem("medai-saved-answers", JSON.stringify(savedAnswers));
+      renderSavedAnswers();
+      showToast("Saved answer removed");
+    });
+    item.addEventListener("click", () => {
+      if (saved.question) setChatQuestion(saved.question);
+    });
+    savedPanel.appendChild(item);
+  });
+}
+
 function escapeHtml(s) {
   return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
@@ -399,6 +517,8 @@ async function runSummarize(textareaEl, btnEl, resultEl, resultTextEl) {
 
   const originalLabel = btnEl.textContent;
   btnEl.disabled = true;
+  resultEl.classList.add("visible", "is-loading");
+  resultTextEl.textContent = "Summarizing your text...";
   btnEl.textContent = "Summarizing…";
 
   try {
@@ -407,14 +527,44 @@ async function runSummarize(textareaEl, btnEl, resultEl, resultTextEl) {
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ text }),
     });
-    const data = await res.json();
-    resultTextEl.textContent = data.summary || data.error || "No summary returned.";
-    resultEl.classList.add("visible");
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      resultTextEl.textContent = data.error || "The server could not summarize this text.";
+      showToast("Summary request failed.");
+    } else {
+      resultTextEl.textContent = data.summary || data.error || "No summary returned.";
+    }
   } catch {
+    resultTextEl.textContent = `Could not reach the model server at ${API_BASE}.`;
     showToast("Could not reach the server.");
   }
+  resultEl.classList.remove("is-loading");
   btnEl.disabled = false;
   btnEl.textContent = originalLabel;
+}
+
+function attachTextFile(file) {
+  if (!file) return;
+  if (file.size > 200000) {
+    showToast("File too large. Please attach a text file under 200 KB.");
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const text = String(reader.result || "").trim();
+    if (!text) {
+      showToast("The selected file is empty.");
+      return;
+    }
+    const current = chatInput.value.trim();
+    chatInput.value = current ? `${current}\n\n${text}` : text;
+    autoResize(chatInput);
+    chatInput.focus();
+    showToast("Text file attached to your prompt.");
+  };
+  reader.onerror = () => showToast("Could not read that file.");
+  reader.readAsText(file);
 }
 
 // ─── TOAST ────────────────────────────────────────────────────────────────────
@@ -424,6 +574,16 @@ function showToast(msg) {
   toastEl.classList.add("show");
   clearTimeout(toastTimeout);
   toastTimeout = setTimeout(() => toastEl.classList.remove("show"), 2500);
+}
+
+let typingGlowTimeout;
+function showTypingGlow() {
+  if (!chatInputShell) return;
+  chatInputShell.classList.add("is-typing");
+  clearTimeout(typingGlowTimeout);
+  typingGlowTimeout = setTimeout(() => {
+    chatInputShell.classList.remove("is-typing");
+  }, 1200);
 }
 
 // ─── EVENT WIRING ─────────────────────────────────────────────────────────────
@@ -442,8 +602,19 @@ function bindEvents() {
     });
   });
 
+  document.querySelectorAll("[data-question]").forEach(b => {
+    b.addEventListener("click", () => setChatQuestion(b.dataset.question, true));
+  });
+
   // Chat input
-  chatInput.addEventListener("input", () => autoResize(chatInput));
+  chatInput.addEventListener("input", () => {
+    autoResize(chatInput);
+    showTypingGlow();
+  });
+  chatInput.addEventListener("blur", () => {
+    clearTimeout(typingGlowTimeout);
+    chatInputShell?.classList.remove("is-typing");
+  });
   chatInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -452,26 +623,22 @@ function bindEvents() {
   });
   sendBtn.addEventListener("click", sendMessage);
 
+  attachBtn?.addEventListener("click", () => attachInput?.click());
+  attachInput?.addEventListener("change", () => {
+    attachTextFile(attachInput.files?.[0]);
+    attachInput.value = "";
+  });
+
   // Summarizers
   sumBtn.addEventListener("click", () => runSummarize(sumInput, sumBtn, sumResult, sumResultText));
   rightSumBtn.addEventListener("click", () => runSummarize(rightSumInput, rightSumBtn, rightSumResult, rightSumText));
-
-  // API Base input (network settings)
-  if (apiBaseInput) {
-    apiBaseInput.value = API_BASE || DEFAULT_API;
-    apiBaseInput.addEventListener("change", () => {
-      const v = apiBaseInput.value.trim();
-      if (v) API_BASE = v;
-      saveSettings();
-      checkHealth();
-      showToast("API URL updated");
-    });
-  }
 
   // Drop zone -> focus textarea
   document.querySelector(".summarizer-drop")?.addEventListener("click", () => sumInput.focus());
 
 const clearHistoryBtn = document.getElementById("clear-history-btn");
+const exportChatBtn = document.getElementById("export-chat-btn");
+const exportSettingsBtn = document.getElementById("export-settings-btn");
 
 // Clear history
 clearHistoryBtn?.addEventListener("click", () => {
@@ -480,74 +647,85 @@ clearHistoryBtn?.addEventListener("click", () => {
   renderHistory();
   showToast("History cleared");
 });
+exportChatBtn?.addEventListener("click", saveConversation);
+exportSettingsBtn?.addEventListener("click", saveConversation);
 
 // SETTINGS LOGIC
 
 const themeSelect = document.getElementById("theme-select");
 const glassSlider = document.getElementById("glass-slider");
 const showConfidence = document.getElementById("show-confidence");
+const apiBaseInput = document.getElementById("api-base-input");
 
 // LOAD SETTINGS
-const settings = _persistedSettings || {};
+const settings = JSON.parse(localStorage.getItem("medai-settings") || "{}");
 
-// Apply theme properly
-const savedTheme = settings.theme || "dark";
-
-// Set dropdown FIRST
-themeSelect.value = savedTheme;
-
-themeSelect.addEventListener("change", () => {
-  const value = themeSelect.value;
-
+function applyTheme(value) {
   document.body.classList.toggle("light", value === "light");
-
-  saveSettings();
-});
-
-// Then apply class
-if (savedTheme === "light") {
-  document.body.classList.add("light");
-} else {
-  document.body.classList.remove("light");
 }
 
-const savedBlur = settings.glass || 10;
+function applyGlass(value) {
+  const glass = Number(value) || 18;
+  const strength = (glass - 5) / 35;
+  const tint = 0.06 + strength * 0.16;
+  const darkTint = 0.04 + strength * 0.10;
+  const edge = 0.12 + strength * 0.24;
 
-glassSlider.value = savedBlur;
-document.documentElement.style.setProperty("--blur", savedBlur + "px");
+  [document.documentElement, document.body].forEach((target) => {
+    target.style.setProperty("--blur", `${glass}px`);
+    target.style.setProperty("--lg-tint", `rgba(255, 255, 255, ${tint.toFixed(3)})`);
+    target.style.setProperty("--lg-tint-dark", `rgba(255, 255, 255, ${darkTint.toFixed(3)})`);
+    target.style.setProperty("--lg-edge", `rgba(255, 255, 255, ${edge.toFixed(3)})`);
+  });
+}
 
-// SAVE FUNCTION
 function saveSettings() {
-  const newSettings = {
+  persistSettings({
     theme: themeSelect.value,
     glass: glassSlider.value,
-    apiBase: (apiBaseInput && apiBaseInput.value.trim()) || API_BASE,
-    showConfidence: showConfidence.checked
-  };
-  localStorage.setItem("medai-settings", JSON.stringify(newSettings));
+    showConfidence: showConfidence.checked,
+    apiBase: API_BASE
+  });
 }
 
-// THEME CHANGE
+themeSelect.value = settings.theme || "dark";
+glassSlider.value = settings.glass || 18;
+apiBaseInput.value = API_BASE;
+
+const savedShowConfidence = settings.showConfidence !== false;
+showConfidence.checked = savedShowConfidence;
+
+applyTheme(themeSelect.value);
+applyGlass(glassSlider.value);
+document.body.classList.toggle("hide-confidence", !savedShowConfidence);
+
 themeSelect.addEventListener("change", () => {
-  const value = themeSelect.value;
-
-  if (value === "light") {
-    document.body.classList.add("light");
-  } else {
-    document.body.classList.remove("light"); // default = dark
-  }
-
+  applyTheme(themeSelect.value);
   saveSettings();
 });
 
-// GLASS CONTROL
 glassSlider.addEventListener("input", () => {
-  document.documentElement.style.setProperty("--blur", glassSlider.value + "px");
+  applyGlass(glassSlider.value);
   saveSettings();
+});
+
+apiBaseInput.addEventListener("change", () => {
+  const nextBase = apiBaseInput.value.trim().replace(/\/*$/, "");
+  if (!nextBase) {
+    apiBaseInput.value = API_BASE;
+    return;
+  }
+  API_BASE = nextBase;
+  saveSettings();
+  checkHealth();
+  showToast("API URL updated");
 });
 
 // CHECKBOXES
-showConfidence.addEventListener("change", saveSettings);
+showConfidence.addEventListener("change", () => {
+  document.body.classList.toggle("hide-confidence", !showConfidence.checked);
+  saveSettings();
+});
 
 // RESET SETTINGS
 document.getElementById("reset-settings-btn").addEventListener("click", () => {
@@ -560,6 +738,7 @@ document.getElementById("reset-settings-btn").addEventListener("click", () => {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function init() {
   bindEvents();
+  renderSavedAnswers();
   checkHealth();
   setInterval(checkHealth, 15000);
   chatInput.focus();

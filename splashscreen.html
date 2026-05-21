@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MedAI - Welcome</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cyan: #24e9ff;
+      --blue: #126dff;
+      --deep: #031020;
+      --text: #f4f9ff;
+      --muted: #9ec8f1;
+      --glass: rgba(19, 39, 67, 0.58);
+      --glass-edge: rgba(205, 230, 255, 0.74);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      min-height: 100%;
+      margin: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100svh;
+      overflow-x: hidden;
+      overflow-y: auto;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background: var(--deep);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .splash {
+      position: relative;
+      min-height: 100vh;
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(18px, 4vmin, 56px);
+      padding: clamp(12px, 4vmin, 64px);
+      isolation: isolate;
+    }
+
+    .splash::before {
+      content: "";
+      position: fixed;
+      inset: -5%;
+      z-index: -4;
+      background:
+        linear-gradient(rgba(2, 14, 30, 0.35), rgba(2, 14, 30, 0.42)),
+        url("https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?q=80&w=2940&auto=format&fit=crop") center / cover no-repeat;
+      filter: blur(8px) saturate(1.08) brightness(0.58);
+      transform: scale(1.06);
+      animation: slow-pan 26s ease-in-out infinite alternate;
+    }
+
+    .splash::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -3;
+      background:
+        radial-gradient(circle at 50% 8%, rgba(42, 148, 255, 0.42), transparent 24%),
+        radial-gradient(circle at 18% 76%, rgba(27, 220, 255, 0.15), transparent 25%),
+        radial-gradient(circle at 86% 42%, rgba(18, 109, 255, 0.18), transparent 27%),
+        linear-gradient(90deg, rgba(0, 14, 32, 0.82), rgba(4, 22, 45, 0.55) 48%, rgba(1, 9, 24, 0.92));
+    }
+
+    .ambient-lines {
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      opacity: 0.4;
+      background:
+        linear-gradient(90deg, transparent 0 58%, rgba(53, 161, 255, 0.22) 59%, transparent 61%),
+        linear-gradient(0deg, transparent 0 63%, rgba(44, 235, 255, 0.12) 64%, transparent 65%);
+      mask-image: radial-gradient(ellipse at center, black 0 52%, transparent 76%);
+    }
+
+    .panel {
+      position: relative;
+      width: min(100%, 920px);
+      min-height: clamp(540px, 74vh, 740px);
+      min-height: clamp(540px, 74svh, 740px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(14px, 2.7vmin, 34px);
+      padding: clamp(24px, 5vmin, 82px);
+      overflow: hidden;
+      border: 1.5px solid var(--glass-edge);
+      border-radius: clamp(24px, 4vmin, 58px);
+      background:
+        linear-gradient(145deg, rgba(238, 248, 255, 0.11), transparent 31%),
+        linear-gradient(180deg, rgba(25, 48, 81, 0.75), rgba(7, 20, 43, 0.7));
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.38),
+        inset 0 -1px 0 rgba(33, 201, 255, 0.25),
+        0 0 0 1px rgba(50, 153, 255, 0.12),
+        0 30px 90px rgba(0, 0, 0, 0.46);
+      backdrop-filter: blur(26px) saturate(145%);
+      animation: panel-in 900ms cubic-bezier(.22, 1, .36, 1) both;
+    }
+
+    .review-panel {
+      display: none;
+    }
+
+    body.is-review .splash {
+      grid-template-columns: minmax(0, 1fr);
+      place-items: center;
+    }
+
+    body.is-review .panel {
+      width: min(100%, 860px);
+      min-height: clamp(620px, 86vh, 840px);
+      min-height: clamp(620px, 86svh, 840px);
+    }
+
+    body.is-review .welcome-panel {
+      display: none;
+    }
+
+    body.is-review .review-panel {
+      display: flex;
+      justify-content: flex-start;
+      align-items: stretch;
+      animation-delay: 90ms;
+    }
+
+    .panel::before,
+    .panel::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .panel::before {
+      inset: 0;
+      border-radius: inherit;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(42, 151, 255, 0.72), transparent 10%),
+        radial-gradient(circle at 50% 100%, rgba(30, 231, 255, 0.6), transparent 13%),
+        linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+      opacity: 0.9;
+      mix-blend-mode: screen;
+    }
+
+    .panel::after {
+      width: 220px;
+      height: 3px;
+      top: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(ellipse, #f7fbff 0%, var(--cyan) 24%, rgba(18, 109, 255, 0.42) 55%, transparent 78%);
+      filter: blur(1px);
+      box-shadow: 0 0 32px rgba(36, 233, 255, 0.95);
+      animation: edge-scan 3.8s ease-in-out infinite;
+    }
+
+    .brand-icon {
+      position: relative;
+      width: clamp(104px, 14vmin, 150px);
+      aspect-ratio: 1;
+      border-radius: 30%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(150deg, #21e7f8 0%, #0d69f8 48%, #073cd7 100%);
+      box-shadow:
+        0 0 0 2px rgba(39, 235, 255, 0.9),
+        0 0 22px rgba(36, 233, 255, 0.82),
+        0 0 54px rgba(18, 109, 255, 0.9);
+      animation: icon-float 3.4s ease-in-out infinite;
+    }
+
+    .brand-icon::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background:
+        linear-gradient(150deg, rgba(255, 255, 255, 0.42), transparent 34%),
+        radial-gradient(circle at 50% 100%, rgba(255, 255, 255, 0.24), transparent 48%);
+      pointer-events: none;
+    }
+
+    .brand-icon img {
+      width: 88%;
+      height: 88%;
+      object-fit: contain;
+      border-radius: inherit;
+      filter: drop-shadow(0 6px 14px rgba(0, 22, 60, 0.34));
+    }
+
+    .title-group {
+      text-align: center;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(3.25rem, 8.5vmin, 5.8rem);
+      line-height: 0.88;
+      font-weight: 800;
+      letter-spacing: 0;
+      color: #f8fbff;
+      text-shadow:
+        0 2px 0 rgba(255, 255, 255, 0.28),
+        0 16px 34px rgba(0, 14, 45, 0.58);
+    }
+
+    .title span {
+      background: linear-gradient(180deg, #ffffff 0%, #edf6ff 44%, #9fbce1 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .subtitle {
+      margin: clamp(12px, 1.4vw, 22px) 0 0;
+      font-size: clamp(1.15rem, 2.8vmin, 2.35rem);
+      line-height: 1.2;
+      color: #9fcfff;
+      text-shadow: 0 0 22px rgba(58, 159, 255, 0.3);
+    }
+
+    .status-zone {
+      position: relative;
+      width: min(100%, 760px);
+      min-height: clamp(250px, 34vmin, 360px);
+      display: grid;
+      place-items: center;
+      text-align: center;
+    }
+
+    .status-view,
+    .welcome-view {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 520ms ease, transform 520ms ease;
+    }
+
+    .welcome-view {
+      opacity: 0;
+      transform: translateY(12px);
+      pointer-events: none;
+    }
+
+    body.is-ready .status-view {
+      opacity: 0;
+      transform: translateY(-12px);
+      pointer-events: none;
+    }
+
+    body.is-ready .welcome-view {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .trust-line,
+    .welcome-copy {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 18px;
+      color: #eef7ff;
+      font-size: clamp(0.98rem, 2vmin, 1.35rem);
+      font-weight: 500;
+      text-align: left;
+    }
+
+    .trust-line svg,
+    .welcome-copy svg {
+      width: 38px;
+      height: 38px;
+      color: #21e6c5;
+      filter: drop-shadow(0 0 10px rgba(33, 230, 197, 0.6));
+    }
+
+    .supporting {
+      display: block;
+      margin-top: 12px;
+      color: rgba(185, 211, 240, 0.78);
+      font-size: clamp(0.9rem, 1.75vmin, 1.18rem);
+      font-weight: 400;
+    }
+
+    .divider {
+      position: relative;
+      width: min(72vw, 720px);
+      height: 2px;
+      margin: clamp(14px, 2.6vmin, 22px) auto clamp(16px, 2.8vmin, 24px);
+      background: linear-gradient(90deg, transparent, rgba(162, 214, 255, 0.8), rgba(162, 214, 255, 0.8), transparent);
+      overflow: visible;
+    }
+
+    .divider::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 36%;
+      width: 30%;
+      height: 5px;
+      transform: translateY(-50%);
+      background: radial-gradient(ellipse, #ffffff 0%, var(--cyan) 28%, transparent 72%);
+      filter: blur(1px);
+      animation: line-pulse 2.5s ease-in-out infinite;
+    }
+
+    .dots {
+      display: flex;
+      justify-content: center;
+      gap: clamp(10px, 1.8vmin, 18px);
+      margin-bottom: clamp(12px, 2vmin, 16px);
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      background: rgba(92, 170, 255, 0.7);
+      box-shadow: 0 0 13px rgba(80, 192, 255, 0.72);
+      animation: dot-wave 1.4s ease-in-out infinite;
+    }
+
+    .dot:nth-child(2) {
+      animation-delay: 120ms;
+    }
+
+    .dot:nth-child(3) {
+      animation-delay: 240ms;
+    }
+
+    .dot:nth-child(4) {
+      animation-delay: 360ms;
+    }
+
+    .dot:nth-child(5) {
+      animation-delay: 480ms;
+    }
+
+    .loading-text,
+    .start-note {
+      margin: 0;
+      color: rgba(177, 206, 239, 0.8);
+      font-size: clamp(0.95rem, 1.7vmin, 1.2rem);
+    }
+
+    .welcome-title {
+      display: none;
+      margin: 0 0 16px;
+      color: #f7fbff;
+      font-size: clamp(1.8rem, 3.7vmin, 3rem);
+      line-height: 1.05;
+      font-weight: 700;
+      text-shadow: 0 12px 26px rgba(0, 14, 45, 0.48);
+    }
+
+    .welcome-copy {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      max-width: 460px;
+      margin-bottom: clamp(26px, 4.8vmin, 54px);
+      color: rgba(209, 229, 249, 0.86);
+      font-weight: 400;
+      line-height: 1.45;
+      text-align: center;
+    }
+
+    .welcome-copy svg {
+      display: none;
+    }
+
+    .enter-button {
+      position: relative;
+      width: min(100%, 540px);
+      min-height: clamp(58px, 7.4vmin, 76px);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: clamp(16px, 2.6vmin, 28px);
+      margin-bottom: clamp(12px, 2vmin, 18px);
+      border: 1px solid rgba(136, 221, 255, 0.92);
+      border-radius: 22px;
+      color: white;
+      font: inherit;
+      font-size: clamp(1.12rem, 2.35vmin, 1.7rem);
+      font-weight: 700;
+      text-decoration: none;
+      appearance: none;
+      background: linear-gradient(145deg, #24d7f4 0%, #1676f4 58%, #0b49df 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.48),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.22),
+        0 0 22px rgba(36, 233, 255, 0.82),
+        0 10px 42px rgba(11, 76, 218, 0.52);
+      cursor: pointer;
+      transition: transform 180ms ease, box-shadow 180ms ease;
+    }
+
+    .enter-button:hover,
+    .enter-button:focus-visible {
+      transform: translateY(-2px);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.56),
+        0 0 30px rgba(36, 233, 255, 0.98),
+        0 16px 50px rgba(11, 76, 218, 0.62);
+      outline: none;
+    }
+
+    .enter-button svg {
+      width: clamp(30px, 4vmin, 42px);
+      height: clamp(30px, 4vmin, 42px);
+      stroke-width: 2.4;
+    }
+
+    .privacy-note {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: start;
+      gap: 14px;
+      max-width: 380px;
+      margin: 0 auto;
+      color: rgba(217, 233, 251, 0.86);
+      font-size: clamp(0.95rem, 1.8vmin, 1.08rem);
+      line-height: 1.45;
+      text-align: left;
+    }
+
+    .review-copy {
+      display: inline;
+    }
+
+    .standard-copy,
+    .welcome-panel .start-note {
+      display: none;
+    }
+
+    .privacy-note svg {
+      width: 28px;
+      height: 28px;
+      color: #21e6c5;
+      filter: drop-shadow(0 0 10px rgba(33, 230, 197, 0.6));
+    }
+
+    .review-content {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: clamp(22px, 3vmin, 36px);
+    }
+
+    .back-button {
+      width: clamp(48px, 6vmin, 58px);
+      height: clamp(48px, 6vmin, 58px);
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(204, 232, 255, 0.18);
+      border-radius: 50%;
+      color: #dceeff;
+      background: rgba(204, 232, 255, 0.17);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: transform 180ms ease, background 180ms ease;
+    }
+
+    .back-button:hover,
+    .back-button:focus-visible {
+      transform: translateX(-2px);
+      background: rgba(204, 232, 255, 0.24);
+      outline: none;
+    }
+
+    .back-button svg {
+      width: 30px;
+      height: 30px;
+    }
+
+    .review-heading {
+      text-align: center;
+    }
+
+    .review-heading h2 {
+      margin: 0 0 14px;
+      font-size: clamp(1.35rem, 2.7vmin, 1.7rem);
+      line-height: 1.2;
+      font-weight: 800;
+      color: #dcecff;
+    }
+
+    .review-heading p {
+      margin: 0;
+      color: rgba(199, 220, 246, 0.82);
+      font-size: clamp(1rem, 1.9vmin, 1.15rem);
+    }
+
+    .review-list {
+      display: grid;
+      gap: clamp(16px, 2.4vmin, 24px);
+    }
+
+    .review-card {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: clamp(18px, 2.6vmin, 28px);
+      min-height: clamp(144px, 18vmin, 190px);
+      padding: clamp(20px, 3.2vmin, 34px);
+      border: 1px solid rgba(204, 232, 255, 0.2);
+      border-radius: clamp(22px, 3vmin, 32px);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.08), transparent 46%),
+        rgba(10, 35, 67, 0.42);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.11);
+    }
+
+    .review-icon {
+      width: clamp(62px, 7vmin, 82px);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      color: #21e6ff;
+      background: rgba(102, 174, 255, 0.14);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14);
+    }
+
+    .review-icon svg {
+      width: 48%;
+      height: 48%;
+      filter: drop-shadow(0 0 10px rgba(33, 230, 255, 0.42));
+    }
+
+    .review-text h3 {
+      margin: 0 0 10px;
+      color: #f3f8ff;
+      font-size: clamp(1rem, 2vmin, 1.18rem);
+      line-height: 1.2;
+    }
+
+    .review-text p {
+      margin: 0;
+      color: rgba(198, 218, 244, 0.82);
+      font-size: clamp(0.94rem, 1.7vmin, 1.08rem);
+      line-height: 1.45;
+    }
+
+    .review-text a {
+      color: #a8d7ff;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .text-link {
+      padding: 0;
+      border: 0;
+      color: #a8d7ff;
+      background: transparent;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .text-link:hover,
+    .text-link:focus-visible {
+      color: #d8efff;
+      text-decoration: underline;
+      outline: none;
+    }
+
+    .card-arrow {
+      width: 26px;
+      height: 26px;
+      color: #65b7ff;
+    }
+
+    .agree-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 16px;
+      width: min(100%, 560px);
+      margin: 0 auto;
+      color: rgba(218, 234, 252, 0.88);
+      font-size: clamp(0.96rem, 1.8vmin, 1.08rem);
+      line-height: 1.3;
+      cursor: pointer;
+    }
+
+    .agree-row input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .fake-check {
+      width: 28px;
+      height: 28px;
+      flex: 0 0 auto;
+      border: 2px solid rgba(92, 170, 255, 0.82);
+      border-radius: 7px;
+      background: rgba(5, 26, 53, 0.28);
+      box-shadow: 0 0 14px rgba(92, 170, 255, 0.24);
+    }
+
+    .agree-row > span:last-child {
+      align-self: center;
+      padding-top: 1px;
+    }
+
+    .agree-row input:checked + .fake-check {
+      background:
+        linear-gradient(135deg, rgba(33, 230, 197, 0.95), rgba(18, 109, 255, 0.85));
+      border-color: rgba(89, 235, 255, 0.95);
+    }
+
+    .agree-row input:checked + .fake-check::after {
+      content: "";
+      display: block;
+      width: 11px;
+      height: 6px;
+      margin: 7px auto 0;
+      border-left: 2px solid white;
+      border-bottom: 2px solid white;
+      transform: rotate(-45deg);
+    }
+
+    .continue-button:disabled {
+      opacity: 0.48;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 0 16px rgba(36, 233, 255, 0.22);
+    }
+
+    .review-panel .continue-button {
+      align-self: center;
+      width: min(100%, 560px);
+      margin: 0;
+    }
+
+    .policy-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: none;
+      place-items: center;
+      padding: 24px;
+      background: rgba(1, 8, 20, 0.62);
+      backdrop-filter: blur(16px);
+    }
+
+    .policy-modal.is-open {
+      display: grid;
+    }
+
+    .policy-modal__panel {
+      width: min(100%, 560px);
+      border: 1px solid rgba(205, 230, 255, 0.42);
+      border-radius: 28px;
+      padding: clamp(24px, 5vw, 36px);
+      background:
+        linear-gradient(145deg, rgba(238, 248, 255, 0.12), transparent 38%),
+        rgba(12, 31, 58, 0.9);
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    .policy-modal__panel h2 {
+      margin: 0 0 12px;
+      font-size: 1.35rem;
+    }
+
+    .policy-modal__panel p {
+      margin: 0 0 14px;
+      color: rgba(215, 232, 250, 0.86);
+      line-height: 1.55;
+    }
+
+    .policy-modal__panel button {
+      margin-top: 8px;
+      width: 100%;
+    }
+
+    .welcome-panel .enter-button {
+      margin-bottom: clamp(18px, 3vmin, 32px);
+    }
+
+    @keyframes slow-pan {
+      from {
+        transform: scale(1.06) translate3d(-1.5%, -1%, 0);
+      }
+
+      to {
+        transform: scale(1.1) translate3d(1.5%, 1%, 0);
+      }
+    }
+
+    @keyframes panel-in {
+      from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @keyframes icon-float {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-8px);
+      }
+    }
+
+    @keyframes edge-scan {
+      0%,
+      100% {
+        left: 50%;
+        opacity: 0.8;
+      }
+
+      50% {
+        left: 66%;
+        opacity: 1;
+      }
+    }
+
+    @keyframes line-pulse {
+      0%,
+      100% {
+        transform: translate(-18%, -50%) scaleX(0.8);
+        opacity: 0.65;
+      }
+
+      50% {
+        transform: translate(18%, -50%) scaleX(1.3);
+        opacity: 1;
+      }
+    }
+
+    @keyframes dot-wave {
+      0%,
+      100% {
+        transform: translateY(0);
+        opacity: 0.6;
+      }
+
+      45% {
+        transform: translateY(-5px);
+        opacity: 1;
+        background: #42f1ff;
+      }
+    }
+
+    @media (max-width: 900px) {
+      body.is-review .splash {
+        grid-template-columns: minmax(0, 1fr);
+        place-items: center;
+      }
+
+      body.is-review .panel {
+        min-height: auto;
+      }
+
+      body.is-review .welcome-panel {
+        display: none;
+      }
+
+      .splash {
+        padding: clamp(14px, 4vw, 28px);
+      }
+
+      .panel {
+        min-height: min(720px, calc(100vh - 28px));
+        min-height: min(720px, calc(100svh - 28px));
+        width: min(100%, 760px);
+        gap: 18px;
+        border-radius: clamp(26px, 7vw, 42px);
+        padding: clamp(26px, 7vw, 48px) clamp(20px, 6vw, 42px);
+      }
+
+      .status-zone {
+        min-height: clamp(230px, 32vh, 280px);
+        min-height: clamp(230px, 32svh, 280px);
+      }
+
+      .trust-line,
+      .welcome-copy {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        gap: 12px;
+        text-align: center;
+      }
+
+      .divider {
+        width: 100%;
+      }
+
+      .enter-button {
+        width: min(100%, 420px);
+        border-radius: 18px;
+      }
+
+      .review-panel {
+        width: min(100%, 760px);
+      }
+    }
+
+    @media (max-width: 520px) {
+      .splash {
+        align-items: start;
+        padding: 12px;
+      }
+
+      .panel {
+        min-height: calc(100vh - 24px);
+        min-height: calc(100svh - 24px);
+        justify-content: center;
+        gap: 14px;
+        padding: clamp(22px, 8vw, 34px) clamp(16px, 5vw, 24px);
+      }
+
+      .brand-icon {
+        width: clamp(82px, 27vw, 112px);
+      }
+
+      .title {
+        font-size: clamp(2.75rem, 16vw, 4rem);
+      }
+
+      .subtitle {
+        font-size: clamp(1rem, 5vw, 1.35rem);
+      }
+
+      .status-zone {
+        width: 100%;
+        min-height: 260px;
+      }
+
+      .trust-line,
+      .welcome-copy {
+        font-size: clamp(0.92rem, 4.2vw, 1.05rem);
+      }
+
+      .trust-line svg,
+      .welcome-copy svg {
+        width: 32px;
+        height: 32px;
+      }
+
+      .supporting,
+      .loading-text,
+      .start-note {
+        font-size: 0.9rem;
+      }
+
+      .welcome-title {
+        font-size: clamp(1.55rem, 8vw, 2rem);
+      }
+
+      .enter-button {
+        min-height: 58px;
+        border-radius: 16px;
+      }
+
+      .review-content {
+        gap: 18px;
+      }
+
+      .review-card {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        min-height: auto;
+        text-align: center;
+      }
+
+      .card-arrow {
+        display: none;
+      }
+
+      .agree-row {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .panel {
+        border-radius: 22px;
+        padding: 20px 14px;
+      }
+
+      .status-zone {
+        min-height: 282px;
+      }
+
+      .dots {
+        gap: 9px;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+      }
+    }
+
+    @media (max-height: 620px) and (orientation: landscape) {
+      body.is-review .splash {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .splash {
+        padding: 12px;
+      }
+
+      .welcome-panel {
+        min-height: calc(100vh - 24px);
+        min-height: calc(100svh - 24px);
+        max-width: 920px;
+        display: grid;
+        grid-template-columns: auto minmax(260px, 1fr);
+        grid-template-areas:
+          "icon title"
+          "icon status";
+        align-content: center;
+        column-gap: clamp(24px, 5vw, 56px);
+        row-gap: 10px;
+        padding: 24px clamp(26px, 5vw, 54px);
+      }
+
+      .brand-icon {
+        grid-area: icon;
+        width: clamp(102px, 18vmin, 142px);
+      }
+
+      .title-group {
+        grid-area: title;
+        text-align: left;
+      }
+
+      .title {
+        font-size: clamp(3rem, 12vmin, 5rem);
+      }
+
+      .subtitle {
+        font-size: clamp(1rem, 4.3vmin, 1.45rem);
+      }
+
+      .status-zone {
+        grid-area: status;
+        min-height: 214px;
+      }
+
+      .trust-line,
+      .welcome-copy {
+        text-align: left;
+      }
+
+      .divider {
+        width: 100%;
+      }
+
+      body.is-review .welcome-panel {
+        display: none;
+        min-height: calc(100vh - 24px);
+        min-height: calc(100svh - 24px);
+        padding: 22px;
+      }
+
+      body.is-review .review-panel {
+        min-height: calc(100vh - 24px);
+        min-height: calc(100svh - 24px);
+        padding: 22px;
+      }
+
+      body.is-review .review-content {
+        gap: 14px;
+      }
+
+      body.is-review .review-card {
+        min-height: auto;
+        padding: 16px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="splash" aria-label="MedAI splash screen">
+    <div class="ambient-lines" aria-hidden="true"></div>
+
+    <section class="panel welcome-panel">
+      <div class="brand-icon" aria-hidden="true">
+        <img src="assets/logo-avatar.png" alt="">
+      </div>
+
+      <div class="title-group">
+        <h1 class="title"><span>MedAI</span></h1>
+        <p class="subtitle">Your Medical Assistant</p>
+      </div>
+
+      <div class="status-zone">
+        <div class="status-view" aria-live="polite">
+          <div class="trust-line">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+              <path d="m9 12 2 2 4-5"/>
+            </svg>
+            <div>
+              Trusted medical information assistant powered by Phi-4 Mini
+              <span class="supporting">Preparing a safer, smarter healthcare guidance experience.</span>
+            </div>
+          </div>
+
+          <div class="divider" aria-hidden="true"></div>
+
+          <div class="dots" aria-hidden="true">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+          <p class="loading-text">Loading MedAI...</p>
+        </div>
+
+        <div class="welcome-view">
+          <div class="divider" aria-hidden="true"></div>
+          <h2 class="welcome-title">Welcome to MedAI</h2>
+          <div class="welcome-copy">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+              <path d="m9 12 2 2 4-5"/>
+            </svg>
+            <span class="standard-copy">AI-powered medical guidance and quick text summarization in one secure workspace.</span>
+            <span class="review-copy">AI-powered support for your health-related questions.</span>
+          </div>
+          <button class="enter-button" type="button" id="enter-review" aria-label="Enter MedAI">
+            <span>Enter MedAI</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 12h14"/>
+              <path d="m13 5 7 7-7 7"/>
+            </svg>
+          </button>
+          <p class="start-note">Start your medical query experience</p>
+          <div class="privacy-note">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+              <path d="m9 12 2 2 4-5"/>
+            </svg>
+            <span>Your health data is safe and secure<br>We respect your privacy.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel review-panel" aria-label="Before you continue">
+      <div class="review-content">
+        <button class="back-button" type="button" id="back-welcome" aria-label="Go back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 12H5"/>
+            <path d="m12 19-7-7 7-7"/>
+          </svg>
+        </button>
+
+        <header class="review-heading">
+          <h2>Before You Continue</h2>
+          <p>Please review the following information.</p>
+        </header>
+
+        <div class="review-list">
+          <article class="review-card">
+            <div class="review-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/>
+                <path d="m9 12 2 2 4-5"/>
+              </svg>
+            </div>
+            <div class="review-text">
+              <h3>Disclaimer</h3>
+              <p>MedAI is an AI-powered assistant designed to provide general information and support based on your input. It is not a substitute for professional medical advice, diagnosis, or treatment.</p>
+            </div>
+            <svg class="card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </article>
+
+          <article class="review-card">
+            <div class="review-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="3" width="14" height="18" rx="2"/>
+                <path d="M9 8h6"/>
+                <path d="M9 12h6"/>
+                <path d="M9 16h4"/>
+              </svg>
+            </div>
+            <div class="review-text">
+              <h3>Terms &amp; Conditions</h3>
+              <p>By using MedAI, you agree to our <button class="text-link" type="button" data-policy="terms">Terms of Service</button> and acknowledge that you have read and understood our <button class="text-link" type="button" data-policy="privacy">Privacy Policy</button>.</p>
+            </div>
+            <svg class="card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="m9 18 6-6-6-6"/>
+            </svg>
+          </article>
+        </div>
+
+        <label class="agree-row">
+          <input type="checkbox" id="agree-check">
+          <span class="fake-check" aria-hidden="true"></span>
+          <span>I have read and agree to the Disclaimer and Terms &amp; Conditions.</span>
+        </label>
+
+        <button class="enter-button continue-button" type="button" id="continue-app" disabled>
+          <span>Continue</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M5 12h14"/>
+            <path d="m13 5 7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <div class="policy-modal" id="policy-modal" role="dialog" aria-modal="true" aria-labelledby="policy-title">
+    <div class="policy-modal__panel">
+      <h2 id="policy-title">Terms of Service</h2>
+      <p id="policy-copy">MedAI provides educational medical information and text summarization support. It does not replace professional medical advice, diagnosis, emergency care, or treatment.</p>
+      <p>Do not enter sensitive personal details unless your project environment is secured. For urgent symptoms, contact a licensed healthcare professional or emergency service.</p>
+      <button class="enter-button" type="button" id="policy-close">Close</button>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener("load", () => {
+      window.setTimeout(() => {
+        document.body.classList.add("is-ready");
+      }, 2600);
+    });
+
+    const enterReview = document.getElementById("enter-review");
+    const backWelcome = document.getElementById("back-welcome");
+    const agreeCheck = document.getElementById("agree-check");
+    const continueApp = document.getElementById("continue-app");
+    const policyModal = document.getElementById("policy-modal");
+    const policyTitle = document.getElementById("policy-title");
+    const policyCopy = document.getElementById("policy-copy");
+    const policyClose = document.getElementById("policy-close");
+    const policyText = {
+      terms: {
+        title: "Terms of Service",
+        copy: "MedAI is intended for educational use and general medical information support. You are responsible for verifying information with qualified healthcare professionals before acting on it."
+      },
+      privacy: {
+        title: "Privacy Policy",
+        copy: "MedAI stores chat history and saved answers in your browser local storage for this demo. Avoid entering personally identifiable health information unless your environment is secured."
+      }
+    };
+
+    enterReview.addEventListener("click", () => {
+      document.body.classList.add("is-review");
+      backWelcome.focus({ preventScroll: true });
+    });
+
+    backWelcome.addEventListener("click", () => {
+      document.body.classList.remove("is-review");
+      enterReview.focus({ preventScroll: true });
+    });
+
+    agreeCheck.addEventListener("change", () => {
+      continueApp.disabled = !agreeCheck.checked;
+    });
+
+    continueApp.addEventListener("click", () => {
+      if (agreeCheck.checked) {
+        sessionStorage.setItem("medai-splash-complete", "true");
+        window.location.href = "index.html";
+      }
+    });
+
+    document.querySelectorAll("[data-policy]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const content = policyText[button.dataset.policy];
+        policyTitle.textContent = content.title;
+        policyCopy.textContent = content.copy;
+        policyModal.classList.add("is-open");
+        policyClose.focus({ preventScroll: true });
+      });
+    });
+
+    policyClose.addEventListener("click", () => {
+      policyModal.classList.remove("is-open");
+    });
+
+    policyModal.addEventListener("click", (event) => {
+      if (event.target === policyModal) {
+        policyModal.classList.remove("is-open");
+      }
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        policyModal.classList.remove("is-open");
+      }
+    });
+  </script>
+</body>
+</html>

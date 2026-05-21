@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MedAI — Medical QA Chatbot</title>
+  <title>MedAI - Medical QA Chatbot</title>
+  <script>
+    if (sessionStorage.getItem("medai-splash-complete") !== "true") {
+      window.location.replace("splashscreen.html");
+    }
+  </script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,10 +64,7 @@
       <div class="lg-card__content sidebar__inner">
         <div class="sidebar__brand">
           <div class="sidebar__brand-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              <path d="M3.5 12h6L11 9l2 6 1.5-3h6"/>
-            </svg>
+            <img src="assets/logo-avatar.png" alt="MedAI logo">
           </div>
           <div class="sidebar__brand-text">
             <div class="sidebar__brand-name">MedAI</div>
@@ -71,32 +73,32 @@
         </div>
 
         <nav class="sidebar__nav">
-          <div class="nav-item active" data-tab="chat">
+          <button class="nav-item active" type="button" data-tab="chat">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             <span>Chat</span>
-          </div>
-          <div class="nav-item" data-tab="summarizer">
+          </button>
+          <button class="nav-item" type="button" data-tab="summarizer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="7" y1="8" x2="17" y2="8"/><line x1="7" y1="12" x2="17" y2="12"/><line x1="7" y1="16" x2="13" y2="16"/></svg>
             <span>Summarizer</span>
-          </div>
-          <div class="nav-item" data-tab="history">
+          </button>
+          <button class="nav-item" type="button" data-tab="history">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             <span>History</span>
-          </div>
-          <div class="nav-item" data-action="save">
+          </button>
+          <button class="nav-item" type="button" data-tab="saved">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
             <span>Saved</span>
-          </div>
-          <div class="nav-item" data-tab="settings">
+          </button>
+          <button class="nav-item" type="button" data-tab="settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
             <span>Settings</span>
-          </div>
+          </button>
         </nav>
 
         <div class="sidebar__about">
           <div class="sidebar__about-title">About MedAI</div>
           <div class="sidebar__about-body">
-            Phi-4 Mini (3.8B) fine-tuned on MedQuAD — 47,457 NIH medical Q&amp;A pairs.
+            Phi-4 Mini (3.8B) fine-tuned on MedQuAD — NIH medical Q&amp;A pairs.
           </div>
           <div class="sidebar__status">
             <span class="status-dot" id="status-dot"></span>
@@ -125,8 +127,8 @@
           <header class="chat-header">
             <div class="chat-header__row">
               <div>
-                <h1 class="chat-header__title">Hello! <span class="wave">👋</span></h1>
-                <p class="chat-header__sub">Ask me anything about health, symptoms, diseases, treatments and more.</p>
+                <h1 class="chat-header__title">MedAI Assistant</h1>
+                <p class="chat-header__sub">Ask a medical question or summarize clinical text with concise, source-aware guidance.</p>
               </div>
               <div class="chat-header__model lg-pill">
                 <div class="lg-pill__filter"></div>
@@ -143,9 +145,7 @@
           <div class="chat-messages" id="chat-messages">
             <div class="msg msg--ai">
               <div class="msg__avatar">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                </svg>
+                <img src="assets/logo-avatar.png" alt="MedAI logo">
               </div>
               <div class="msg__bubble">
                 <div class="msg__bubble-inner">
@@ -158,7 +158,7 @@
 
           <div class="chat-disclaimer">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            For educational purposes only — not a substitute for professional medical advice. Always consult a healthcare professional.
+            For educational purposes only - not a substitute for professional medical advice. Always consult a healthcare professional.
           </div>
 
           <div class="chat-input-area">
@@ -167,9 +167,10 @@
               <div class="lg-input__tint"></div>
               <div class="lg-input__shine"></div>
               <div class="lg-input__content">
-                <button class="attach-btn" title="Attach">
+                <button class="attach-btn" type="button" id="attach-btn" title="Attach text file">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
                 </button>
+                <input type="file" id="attach-input" accept=".txt,.md,.csv,.json,text/*" hidden>
                 <textarea id="chat-input" rows="1" placeholder="Ask a medical question…"></textarea>
                 <button class="send-btn" id="send-btn" title="Send">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -182,8 +183,8 @@
         <!-- SUMMARIZER TAB -->
         <section class="tab-panel" id="tab-summarizer">
           <header class="chat-header">
-            <h1 class="chat-header__title">Document Summarizer</span></h1>
-            <p class="chat-header__sub">Paste medical text below and get a concise summary.</p>
+            <h1 class="chat-header__title">Document Summarizer</h1>
+            <p class="chat-header__sub">Paste notes, abstracts, or patient education text and get a concise summary.</p>
           </header>
           <div class="summarizer-body">
             <div class="summarizer-drop">
@@ -203,11 +204,35 @@
         <!-- HISTORY TAB -->
         <section class="tab-panel" id="tab-history">
           <header class="chat-header">
-            <h1 class="chat-header__title">Chat History</span></h1>
-            <p class="chat-header__sub">Your recent medical questions.</p>
+            <h1 class="chat-header__title">Chat History</h1>
+            <p class="chat-header__sub">Revisit your recent medical questions.</p>
           </header>
           <div class="history-panel" id="history-panel">
-            <div class="history-empty">No history yet. Ask a question to get started!</div>
+            <div class="empty-state history-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+              <strong>No history yet</strong>
+              <span>Ask a question to start building your recent topics.</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- SAVED TAB -->
+        <section class="tab-panel" id="tab-saved">
+          <header class="chat-header">
+            <div class="chat-header__row">
+              <div>
+                <h1 class="chat-header__title">Saved Answers</h1>
+                <p class="chat-header__sub">Review answers you bookmarked during your session.</p>
+              </div>
+              <button class="sum-btn sum-btn--small" id="export-chat-btn" type="button">Export Chat</button>
+            </div>
+          </header>
+          <div class="history-panel" id="saved-panel">
+            <div class="empty-state history-empty">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              <strong>No saved answers yet</strong>
+              <span>Use the bookmark icon on an answer to save it here.</span>
+            </div>
           </div>
         </section>
 
@@ -221,7 +246,10 @@
 
     <!-- APPEARANCE -->
     <div class="settings-group">
-      <div class="settings-group__title">Appearance</div>
+      <div class="settings-group__title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        Appearance
+      </div>
 
       <div class="setting-row">
         <div>
@@ -245,18 +273,24 @@
 
     <!-- CHAT -->
     <div class="settings-group">
-      <div class="settings-group__title">Chat</div>
+      <div class="settings-group__title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></svg>
+        Chat
+      </div>
 
 
       <div class="setting-row">
-        <div class="setting-label">Show Confidence Score</div>
+        <div class="setting-label">Show Response Estimate</div>
         <input type="checkbox" id="show-confidence" checked>
       </div>
     </div>
 
     <!-- MODEL -->
     <div class="settings-group">
-      <div class="settings-group__title">Model</div>
+      <div class="settings-group__title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v5M12 17v5M4.22 4.22l3.54 3.54M16.24 16.24l3.54 3.54M2 12h5M17 12h5M4.22 19.78l3.54-3.54M16.24 7.76l3.54-3.54"/><circle cx="12" cy="12" r="4"/></svg>
+        Model
+      </div>
 
       <div class="setting-row">
         <div>
@@ -272,11 +306,27 @@
 
     <!-- SYSTEM -->
     <div class="settings-group">
-      <div class="settings-group__title">System</div>
+      <div class="settings-group__title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+        System
+      </div>
 
       <div class="setting-row">
         <div class="setting-label">Clear Chat History</div>
         <button id="clear-history-btn">Clear</button>
+      </div>
+
+      <div class="setting-row setting-row--stack">
+        <div>
+          <div class="setting-label">API Base URL</div>
+          <div class="setting-desc">Change this when using a tunnel or hosted backend.</div>
+        </div>
+        <input type="url" id="api-base-input" placeholder="http://localhost:8000">
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-label">Export Current Chat</div>
+        <button id="export-settings-btn">Export</button>
       </div>
 
       <div class="setting-row">
@@ -288,6 +338,7 @@
   </div>
 </section>
 
+      </div>
     </main>
 
     <!-- ═══ RIGHT PANEL ═══ -->
@@ -300,29 +351,34 @@
         <div class="lg-card__edge"></div>
 
         <div class="lg-card__content">
-          <div class="card-title">Key Features</div>
-          <div class="features-list">
-            <div class="feature-item"><div class="feature-icon" style="--c:59,130,246">🔍</div><span>Medical Question Answering (Fine-tuned)</span></div>
-            <div class="feature-item"><div class="feature-icon" style="--c:16,185,129">💬</div><span>Query Rewriting for Better Understanding</span></div>
-            <div class="feature-item"><div class="feature-icon" style="--c:139,92,246">🧠</div><span>Context-Aware Response Generation</span></div>
-            <div class="feature-item"><div class="feature-icon" style="--c:245,158,11">📄</div><span>Document Summarization</span></div>
-            <div class="feature-item"><div class="feature-icon" style="--c:236,72,153">💡</div><span>Related Question Suggestions</span></div>
-            <div class="feature-item"><div class="feature-icon" style="--c:20,184,166">🛡️</div><span>Confidence Indicator &amp; Source Display</span></div>
-            <div class="feature-item"><div class="feature-icon" style="--c:251,66,104">⚠️</div><span>Medical Disclaimer Integration</span></div>
+          <div class="card-title">Suggested Questions</div>
+          <div class="suggestion-list">
+            <button class="suggestion-item" data-question="What is pneumonia and what symptoms should I watch for?">
+              <span>What is pneumonia?</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+            <button class="suggestion-item" data-question="What are common warning signs of dehydration?">
+              <span>Warning signs of dehydration</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+            <button class="suggestion-item" data-question="How can I manage mild fever at home?">
+              <span>Managing mild fever</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+            <button class="suggestion-item" data-question="When should chest pain be treated as urgent?">
+              <span>When is chest pain urgent?</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
           </div>
-        </div>
-      </div>
-
-      <!-- NETWORK -->
-      <div class="settings-group">
-        <div class="settings-group__title">Network</div>
-
-        <div class="setting-row">
-          <div>
-            <div class="setting-label">API Base URL</div>
-            <div class="setting-desc">FastAPI server URL (example: https://&lt;your-kaggle-host&gt;)</div>
+          <div class="safety-note">
+            <div class="safety-note__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-5"/></svg>
+            </div>
+            <div>
+              <strong>Use as guidance</strong>
+              <span>For urgent symptoms, consult a healthcare professional immediately.</span>
+            </div>
           </div>
-            <input type="text" id="api-base-input" placeholder="http://localhost:8000">
         </div>
       </div>
 
@@ -333,7 +389,7 @@
         <div class="lg-card__edge"></div>
 
         <div class="lg-card__content">
-          <div class="card-title"> Quick Summarizer</div>
+          <div class="card-title">Quick Summarizer</div>
           <div class="summarizer-mini">
             <textarea id="right-sum-input" rows="5" placeholder="Upload or paste your text&#10;Max 5000 characters"></textarea>
             <button class="sum-btn sum-btn--small" id="right-sum-btn">Summarize Text</button>
