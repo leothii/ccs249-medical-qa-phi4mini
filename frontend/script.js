@@ -2,7 +2,11 @@
   MedAI — Chatbot Frontend Logic
   ═══════════════════════════════════════════════════════════════════════ */
 
-const DEFAULT_API = "https://alto-chan-kay-cups.trycloudflare.com";
+const FALLBACK_API = "http://localhost:8000";
+const SAME_ORIGIN_API = (window.location.protocol === "http:" || window.location.protocol === "https:")
+  ? window.location.origin
+  : "";
+const DEFAULT_API = SAME_ORIGIN_API || FALLBACK_API;
 // Load persisted settings early so API_BASE can be configured
 const _persistedSettings = JSON.parse(localStorage.getItem("medai-settings") || "{}");
 let API_BASE = _persistedSettings.apiBase || DEFAULT_API;
@@ -47,6 +51,17 @@ const toastEl        = $("toast");
 
 const URGENT_PATTERN = /\b(chest pain|trouble breathing|difficulty breathing|shortness of breath|stroke|face droop|fainting|seizure|suicidal|suicide|overdose|severe bleeding|anaphylaxis|severe allergic|blue lips|loss of consciousness|heart attack)\b/i;
 const URGENT_WARNING = "Urgent safety note: your question may describe symptoms that need immediate care. If this is happening now, call your local emergency number or go to the nearest emergency department. MedAI can provide general information, but it cannot assess emergencies.";
+const REQUEST_TIMEOUT_MS = 120000;
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
+  const ctrl = new AbortController();
+  const timeoutId = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
 
 // ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
 async function checkHealth() {
@@ -82,24 +97,9 @@ async function checkHealth() {
         }
       };
 
-      // Try common safe probes
-      let r = await probe("GET", "/health");
-      if (r) return r;
-      r = await probe("GET", "/predict/health");
-      if (r) return r;
-      r = await probe("GET", ""); // root
-      if (r) return r;
-      r = await probe("GET", "/docs");
-      if (r) return r;
-      r = await probe("HEAD", "");
-      if (r) return r;
-      // OPTIONS on likely chat endpoints (CORS preflight may respond)
-      r = await probe("OPTIONS", "/chat");
-      if (r) return r;
-      r = await probe("OPTIONS", "/predict/chat");
-      if (r) return r;
-      // No success
-      return null;
+      // Only /health contains reliable model status.
+      const r = await probe("GET", "/health");
+      return r && Object.prototype.hasOwnProperty.call(r, "model_loaded") ? r : null;
     } catch (e) {
       return null;
     }
@@ -303,6 +303,75 @@ function removeTyping() {
   document.getElementById("typing-indicator")?.remove();
 }
 
+function appendStreamingMessage() {
+  const wrap = document.createElement("div");
+  wrap.className = "msg msg--ai";
+  wrap.id = "streaming-message";
+
+  const av = document.createElement("div");
+  av.className = "msg__avatar";
+  av.innerHTML = AI_AVATAR_HTML;
+  wrap.appendChild(av);
+
+  const bubble = document.createElement("div");
+  bubble.className = "msg__bubble";
+
+  const inner = document.createElement("div");
+  inner.className = "msg__bubble-inner";
+  inner.textContent = "";
+  bubble.appendChild(inner);
+
+  wrap.appendChild(bubble);
+  chatMessages.appendChild(wrap);
+  requestAnimationFrame(() => {
+    chatMessages.scrollTo({ top: chatMessages.scrollHeight, behavior: "smooth" });
+  });
+
+  return { wrap, inner };
+}
+
+function parseSseBuffer(buffer, onEvent) {
+  const parts = buffer.split("\n\n");
+  const remainder = parts.pop() || "";
+  for (const part of parts) {
+    const lines = part.split("\n");
+    let event = "message";
+    const dataLines = [];
+    for (const line of lines) {
+      if (line.startsWith("event:")) {
+        event = line.slice(6).trim();
+      } else if (line.startsWith("data:")) {
+        dataLines.push(line.slice(5).trimStart());
+      }
+    }
+    if (!dataLines.length) continue;
+    onEvent(event, dataLines.join("\n"));
+  }
+  return remainder;
+}
+
+function handleChatData(data, question) {
+  const answerText = data.answer || data.response || data.answer_text || data.summary || JSON.stringify(data);
+  const confidence = data.confidence || data.confidence_score || null;
+  const source     = data.source || data.from || "Remote API";
+  const related    = data.related_questions || data.related || [];
+  const warning    = data.urgent_warning || data.warning || "";
+
+  appendMessage("ai", answerText, {
+    confidence: confidence ?? 0,
+    source:     source,
+    related:    related,
+    question:   question,
+  });
+  if (warning && !URGENT_PATTERN.test(question)) {
+    appendMessage("ai", warning);
+  }
+
+  history.unshift({ question, answer: answerText, ts: Date.now() });
+  if (history.length > 50) history.pop();
+  localStorage.setItem("medai-history", JSON.stringify(history));
+}
+
 // ─── SEND MESSAGE ─────────────────────────────────────────────────────────────
 async function sendMessage() {
   const question = chatInput.value.trim();
@@ -322,49 +391,99 @@ async function sendMessage() {
   showTyping();
 
   try {
-    const res = await fetch(`${API_BASE}/chat`, {
+    const res = await fetchWithTimeout(`${API_BASE}/chat_stream`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ question }),
     });
-    removeTyping();
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      appendMessage("ai", `⚠️ Error: ${err.error || "Server error"}`);
-    } else {
-      const data = await res.json();
-
-      // Support multiple backend shapes:
-      // - Local Flask: { answer, confidence, source, related_questions }
-      // - Hosted notebook/API variant: { response }
-      const answerText = data.answer || data.response || data.answer_text || data.summary || JSON.stringify(data);
-      const confidence = data.confidence || data.confidence_score || null;
-      const source     = data.source || data.from || "Remote API";
-      const related    = data.related_questions || data.related || [];
-      const warning    = data.urgent_warning || data.warning || "";
-
-      appendMessage("ai", answerText, {
-        confidence: confidence ?? 0,
-        source:     source,
-        related:    related,
-        question:   question,
-      });
-      if (warning && !URGENT_PATTERN.test(question)) {
-        appendMessage("ai", warning);
+    if (!res.ok || !res.body) {
+      if (res.status === 404) {
+        const fallback = await fetchWithTimeout(`${API_BASE}/chat`, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ question }),
+        });
+        removeTyping();
+        if (!fallback.ok) {
+          const err = await fallback.json().catch(() => ({}));
+          const detail = err.detail ? `\n\n${err.detail}` : "";
+          appendMessage("ai", `Error: ${err.error || "Server error"}${detail}`);
+        } else {
+          const data = await fallback.json();
+          handleChatData(data, question);
+        }
+        return;
       }
 
-      // Save to history
-      history.unshift({ question, answer: answerText, ts: Date.now() });
-      if (history.length > 50) history.pop();
-      localStorage.setItem("medai-history", JSON.stringify(history));
+      const err = await res.json().catch(() => ({}));
+      const detail = err.detail ? `\n\n${err.detail}` : "";
+      removeTyping();
+      appendMessage("ai", `Error: ${err.error || "Server error"}${detail}`);
+      return;
     }
-  } catch {
+
     removeTyping();
-    appendMessage(
-      "ai",
-      `Could not reach the model server at ${API_BASE}.\n\nMake sure your Flask API server is running and reachable at this URL. If you are using a tunnel, update the API Base URL in Settings.`
-    );
+    const streamEl = appendStreamingMessage();
+    let answer = "";
+    let buffer = "";
+    let doneMeta = null;
+    let streamError = null;
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      buffer = parseSseBuffer(buffer, (event, data) => {
+        if (event === "done") {
+          try { doneMeta = JSON.parse(data); } catch { doneMeta = { answer }; }
+          return;
+        }
+        if (event === "error") {
+          try {
+            const errObj = JSON.parse(data);
+            streamError = new Error(errObj.error || "Stream error");
+          } catch {
+            streamError = new Error("Stream error");
+          }
+          return;
+        }
+        try {
+          const payload = JSON.parse(data);
+          const delta = payload.delta || "";
+          answer += delta;
+          streamEl.inner.textContent = answer;
+        } catch {
+          answer += data;
+          streamEl.inner.textContent = answer;
+        }
+      });
+      if (streamError) break;
+    }
+
+    if (streamError) throw streamError;
+    document.getElementById("streaming-message")?.remove();
+
+    const finalData = doneMeta || { answer };
+    if (!finalData.answer) finalData.answer = answer;
+    handleChatData(finalData, question);
+  } catch (err) {
+    removeTyping();
+    document.getElementById("streaming-message")?.remove();
+    if (err?.name === "AbortError") {
+      appendMessage(
+        "ai",
+        `Request timed out after ${Math.round(REQUEST_TIMEOUT_MS / 1000)}s.\n\nTry again, or reduce output length if the server is busy.`
+      );
+    } else {
+      appendMessage(
+        "ai",
+        `Could not reach the model server at ${API_BASE}.\n\nMake sure your Flask API server is running and reachable at this URL. If you are using a tunnel, update the API Base URL in Settings.`
+      );
+    }
   }
 
   isLoading = false;
@@ -522,7 +641,7 @@ async function runSummarize(textareaEl, btnEl, resultEl, resultTextEl) {
   btnEl.textContent = "Summarizing…";
 
   try {
-    const res = await fetch(`${API_BASE}/summarize`, {
+    const res = await fetchWithTimeout(`${API_BASE}/summarize`, {
       method:  "POST",
       headers: { "Content-Type": "application/json" },
       body:    JSON.stringify({ text }),
@@ -534,9 +653,14 @@ async function runSummarize(textareaEl, btnEl, resultEl, resultTextEl) {
     } else {
       resultTextEl.textContent = data.summary || data.error || "No summary returned.";
     }
-  } catch {
-    resultTextEl.textContent = `Could not reach the model server at ${API_BASE}.`;
-    showToast("Could not reach the server.");
+  } catch (err) {
+    if (err?.name === "AbortError") {
+      resultTextEl.textContent = `Summary request timed out after ${Math.round(REQUEST_TIMEOUT_MS / 1000)}s.`;
+      showToast("Summary request timed out.");
+    } else {
+      resultTextEl.textContent = `Could not reach the model server at ${API_BASE}.`;
+      showToast("Could not reach the server.");
+    }
   }
   resultEl.classList.remove("is-loading");
   btnEl.disabled = false;

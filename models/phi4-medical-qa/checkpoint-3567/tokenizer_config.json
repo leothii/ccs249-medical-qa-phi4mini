@@ -1,0 +1,127 @@
+{
+  "add_prefix_space": false,
+  "backend": "tokenizers",
+  "bos_token": "<|endoftext|>",
+  "clean_up_tokenization_spaces": false,
+  "eos_token": "<|end|>",
+  "is_local": false,
+  "model_max_length": 131072,
+  "pad_token": "<｜PAD▁TOKEN｜>",
+  "padding_side": "right",
+  "tokenizer_class": "TokenizersBackend",
+  "unk_token": "ï¿½",
+  "added_tokens_decoder": {
+    "3251": {
+      "content": "ï¿½",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    "199999": {
+      "content": "<|endoftext|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    "200018": {
+      "content": "<|endofprompt|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    },
+    "200019": {
+      "content": "<|assistant|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": true,
+      "normalized": false,
+      "special": true
+    },
+    "200020": {
+      "content": "<|end|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": true,
+      "normalized": false,
+      "special": true
+    },
+    "200021": {
+      "content": "<|user|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": true,
+      "normalized": false,
+      "special": true
+    },
+    "200022": {
+      "content": "<|system|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": true,
+      "normalized": false,
+      "special": true
+    },
+    "200023": {
+      "content": "<|tool|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": true,
+      "normalized": false,
+      "special": false
+    },
+    "200024": {
+      "content": "<|/tool|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": true,
+      "normalized": false,
+      "special": false
+    },
+    "200025": {
+      "content": "<|tool_call|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": true,
+      "normalized": false,
+      "special": false
+    },
+    "200026": {
+      "content": "<|/tool_call|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": true,
+      "normalized": false,
+      "special": false
+    },
+    "200027": {
+      "content": "<|tool_response|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": true,
+      "normalized": false,
+      "special": false
+    },
+    "200028": {
+      "content": "<|tag|>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": true,
+      "normalized": false,
+      "special": true
+    },
+    "200029": {
+      "content": "<｜PAD▁TOKEN｜>",
+      "single_word": false,
+      "lstrip": false,
+      "rstrip": false,
+      "normalized": false,
+      "special": true
+    }
+  }
+}

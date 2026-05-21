@@ -1,0 +1,21 @@
+# Merged full model — too large for GitHub (use LoRA adapter instead)
+models/phi4-medical-final/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Unsloth runtime cache
+runtime/
+unsloth_compiled_cache/
+
+# OS
+.DS_Store
+Thumbs.db
