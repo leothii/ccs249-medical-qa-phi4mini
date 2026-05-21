@@ -639,7 +639,6 @@ async function runSummarize(textareaEl, btnEl, resultEl, resultTextEl) {
   resultEl.classList.add("visible", "is-loading");
   resultTextEl.textContent = "Summarizing your text...";
   btnEl.textContent = "Summarizing…";
-
   try {
     const res = await fetchWithTimeout(`${API_BASE}/summarize`, {
       method:  "POST",
@@ -647,11 +646,39 @@ async function runSummarize(textareaEl, btnEl, resultEl, resultTextEl) {
       body:    JSON.stringify({ text }),
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      resultTextEl.textContent = data.error || "The server could not summarize this text.";
-      showToast("Summary request failed.");
+
+    // If we got a clear summary from the endpoint, use it.
+    const summary = data && data.summary ? String(data.summary).trim() : "";
+    const isDemo = summary.includes("DEMO MODE") || summary.toLowerCase().includes("demo mode");
+
+    if (res.ok && summary && !isDemo) {
+      resultTextEl.textContent = summary;
     } else {
-      resultTextEl.textContent = data.summary || data.error || "No summary returned.";
+      // Fallback: ask the model via the /chat endpoint (some backends produce better freeform answers)
+      // Note: the /chat endpoint enforces a ~1000-char question limit, so truncate safely.
+      const prefix = "Please summarize the following medical text in 2–3 sentences, preserving key medical facts:\n\n";
+      const maxQ = 900 - prefix.length; // leave room for our instruction
+      const shortText = text.length > maxQ ? text.slice(0, maxQ) + "\n\n[truncated]" : text;
+      const chatQuestion = prefix + shortText;
+
+      try {
+        const chatRes = await fetch(`${API_BASE}/chat`, {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ question: chatQuestion }),
+        });
+        const chatData = await chatRes.json().catch(() => ({}));
+        const chatAnswer = chatData.answer || chatData.response || "";
+        if (chatRes.ok && chatAnswer) {
+          resultTextEl.textContent = String(chatAnswer).trim();
+        } else {
+          resultTextEl.textContent = data.error || chatData.error || "The server could not summarize this text.";
+          showToast("Summary request failed.");
+        }
+      } catch (e) {
+        resultTextEl.textContent = `Could not reach the model server at ${API_BASE}.`;
+        showToast("Could not reach the server.");
+      }
     }
   } catch (err) {
     if (err?.name === "AbortError") {
@@ -661,10 +688,11 @@ async function runSummarize(textareaEl, btnEl, resultEl, resultTextEl) {
       resultTextEl.textContent = `Could not reach the model server at ${API_BASE}.`;
       showToast("Could not reach the server.");
     }
+  } finally {
+    resultEl.classList.remove("is-loading");
+    btnEl.disabled = false;
+    btnEl.textContent = originalLabel;
   }
-  resultEl.classList.remove("is-loading");
-  btnEl.disabled = false;
-  btnEl.textContent = originalLabel;
 }
 
 function attachTextFile(file) {
